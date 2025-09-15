@@ -96,77 +96,85 @@ def calculate_exchange_rate(pool_data, asset_a_precision=4, asset_b_precision=2)
 def main():
     """Main function to get pool data and calculate rates"""
     
-    pool_id = "1.19.507"
+    pool_ids = ["1.19.507", "1.19.451"]
     
     # Known asset precisions
-    asset_a_precision = 4  # for 1.3.6268
-    asset_b_precision = 2  # for 1.3.6574
+    precisions = {
+        "1.19.507": (4, 2),  # (asset_a_precision, asset_b_precision)
+        "1.19.451": (8, 6)  # HONEST.XAU and HONEST.USD
+    }
     
-    print(f"Getting data for pool {pool_id}")
-    print(f"Asset A (1.3.6268) precision: {asset_a_precision}")
-    print(f"Asset B (1.3.6574) precision: {asset_b_precision}")
-    print("-" * 50)
-    
-    # Get pool data
-    pool_data = get_pool_data(pool_id)
-    
-    if not pool_data:
-        print("Failed to retrieve pool data")
-        return
-    
-    print("-" * 50)
-    
-    # Calculate exchange rates
-    rate_a_to_b, rate_b_to_a = calculate_exchange_rate(
-        pool_data, 
-        asset_a_precision, 
-        asset_b_precision
-    )
-    
-    if rate_a_to_b is None:
-        print("Could not calculate exchange rates")
-        return
-    
-    print("-" * 50)
-    print("EXCHANGE RATES:")
-    print(f"Asset A → Asset B: {rate_a_to_b:.8f}")
-    print(f"Asset B → Asset A: {rate_b_to_a:.8f}")
-    print("-" * 50)
-    
-    # Additional pool info
-    if "taker_fee_percent" in pool_data:
-        print(f"Taker Fee: {pool_data['taker_fee_percent'] / 100}%")
-    
-    # Constant product (k = x * y)
-    k = (Decimal(pool_data.get("balance_a", "0")) / (Decimal(10) ** asset_a_precision)) * \
-        (Decimal(pool_data.get("balance_b", "0")) / (Decimal(10) ** asset_b_precision))
-    print(f"Constant Product (k): {k}")
+    for pool_id in pool_ids:
+        asset_a_precision, asset_b_precision = precisions[pool_id]
+        
+        print(f"Getting data for pool {pool_id}")
+        print(f"Asset A precision: {asset_a_precision}")
+        print(f"Asset B precision: {asset_b_precision}")
+        print("-" * 50)
+        
+        # Get pool data
+        pool_data = get_pool_data(pool_id)
+        
+        if not pool_data:
+            print(f"Failed to retrieve pool data for {pool_id}")
+            continue
+        
+        print("-" * 50)
+        
+        # Calculate exchange rates
+        rate_a_to_b, rate_b_to_a = calculate_exchange_rate(
+            pool_data, 
+            asset_a_precision, 
+            asset_b_precision
+        )
+        
+        if rate_a_to_b is None:
+            print(f"Could not calculate exchange rates for {pool_id}")
+            continue
+        
+        print("-" * 50)
+        print(f"EXCHANGE RATES FOR POOL {pool_id}:")
+        print(f"Asset A → Asset B: {rate_a_to_b:.8f}")
+        print(f"Asset B → Asset A: {rate_b_to_a:.8f}")
+        print("-" * 50)
+        
+        # Additional pool info
+        if "taker_fee_percent" in pool_data:
+            print(f"Taker Fee: {pool_data['taker_fee_percent'] / 100}%")
+        
+        # Constant product (k = x * y)
+        k = (Decimal(pool_data.get("balance_a", "0")) / (Decimal(10) ** asset_a_precision)) * \
+            (Decimal(pool_data.get("balance_b", "0")) / (Decimal(10) ** asset_b_precision))
+        print(f"Constant Product (k): {k}")
+        print("=" * 50)
 
-    print("-" * 50)
     print("BRIDGE EXCHANGE:")
     
     # Get user input for bridge exchange
-    asset_input = input("Enter asset to exchange (XBTSX.WRAM/BTWTY.EOS): ").strip().upper()
-    amount_input = Decimal(input("Enter amount to exchange: "))
+    # This part is commented out as it's not clear how to handle it with multiple pools yet.
+    # You can uncomment and adapt it if needed.
+    # asset_input = input("Enter asset to exchange (XBTSX.WRAM/BTWTY.EOS): ").strip().upper()
+    # amount_input = Decimal(input("Enter amount to exchange: "))
     
-    bridge_rate_multiplier = Decimal("0.975")
+    # bridge_rate_multiplier = Decimal("0.975")
     
-    if asset_input == "XBTSX.WRAM":
-        # XBTSX.WRAM is Asset B (1.3.6574)
-        bridge_exchange_rate = rate_b_to_a * bridge_rate_multiplier
-        exchanged_amount = amount_input * bridge_exchange_rate
-        print(f"Bridge Exchange Rate (XBTSX.WRAM -> BTWTY.EOS): {bridge_exchange_rate:.8f}")
-        print(f"Exchanged Amount: {exchanged_amount:.4f} BTWTY.EOS")
+    # if asset_input == "XBTSX.WRAM":
+    #     # XBTSX.WRAM is Asset B (1.3.6574)
+    #     bridge_exchange_rate = rate_b_to_a * bridge_rate_multiplier
+    #     exchanged_amount = amount_input * bridge_exchange_rate
+    #     print(f"Bridge Exchange Rate (XBTSX.WRAM -> BTWTY.EOS): {bridge_exchange_rate:.8f}")
+    #     print(f"Exchanged Amount: {exchanged_amount:.4f} BTWTY.EOS")
         
-    elif asset_input == "BTWTY.EOS":
-        # BTWTY.EOS is Asset A (1.3.6268)
-        bridge_exchange_rate = rate_a_to_b * bridge_rate_multiplier
-        exchanged_amount = amount_input * bridge_exchange_rate
-        print(f"Bridge Exchange Rate (BTWTY.EOS -> XBTSX.WRAM): {bridge_exchange_rate:.8f}")
-        print(f"Exchanged Amount: {exchanged_amount:.2f} XBTSX.WRAM")
+    # elif asset_input == "BTWTY.EOS":
+    #     # BTWTY.EOS is Asset A (1.3.6268)
+    #     bridge_exchange_rate = rate_a_to_b * bridge_rate_multiplier
+    #     exchanged_amount = amount_input * bridge_exchange_rate
+    #     print(f"Bridge Exchange Rate (BTWTY.EOS -> XBTSX.WRAM): {bridge_exchange_rate:.8f}")
+    #     print(f"Exchanged Amount: {exchanged_amount:.2f} XBTSX.WRAM")
         
-    else:
-        print("Invalid asset entered. Please choose XBTSX.WRAM or BTWTY.EOS.")
+    # else:
+    #     print("Invalid asset entered. Please choose XBTSX.WRAM or BTWTY.EOS.")
+
 
 def get_single_rate(pool_id="1.19.507", precision_a=4, precision_b=2):
     """Simple function that just returns the exchange rate A/B"""
